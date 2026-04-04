@@ -96,7 +96,7 @@ export const loginUser = asyncHandler(async (req, res) => {
 // @access Private
 export const getCurrentUser = asyncHandler(async (req, res) => {
     try {
-        const user = await User.findById(req.user._id).select("-password");
+        const user = await User.findById(req.user?._id).select("-password");
         if (!user) {
             return res.status(404).json(new ApiResponse(404, "User not found"));
         }
@@ -296,7 +296,7 @@ export const resetPassword = asyncHandler(async (req, res) => {
 // @access Private
 export const changeCurrentPassword = asyncHandler(async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.user?._id;
         const { oldPassword, newPassword } = req.body;
 
         if (!oldPassword || !newPassword) {

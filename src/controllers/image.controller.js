@@ -92,6 +92,9 @@ export const uploadMultipleImages = async (req, res) => {
           unique_filename: true
         });
 
+        const userId = (req.user && req.user._id) ? req.user._id : null;
+        console.log('DEBUG: Attempting save with userId:', userId);
+
         // Create image record
         const image = new Image({
           title: title || path.parse(file.originalname).name,
@@ -102,7 +105,7 @@ export const uploadMultipleImages = async (req, res) => {
           size: result.bytes,
           width: result.width,
           height: result.height,
-          uploadedBy: req.user?._id || null
+          uploadedBy: userId
         });
 
         await image.save();
@@ -112,6 +115,7 @@ export const uploadMultipleImages = async (req, res) => {
         fs.unlinkSync(file.path);
 
       } catch (err) {
+        console.error('DEBUG: Individual upload fail:', { file: file.originalname, stack: err.stack, message: err.message });
         errors.push({ file: file.originalname, error: err.message });
         if (fs.existsSync(file.path)) {
           fs.unlinkSync(file.path);

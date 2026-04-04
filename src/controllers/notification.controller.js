@@ -3,7 +3,7 @@ import Notification from '../models/Notification.model.js ';
 // Get all notifications of logged in user
 export const getUserNotifications = async (req, res) => {
   try {
-    const notifications = await Notification.find({ user: req.user._id })
+    const notifications = await Notification.find({ user: req.user?._id })
       .sort({ createdAt: -1 })
       .limit(50);   // latest 50 notifications
 
@@ -21,7 +21,7 @@ export const getUserNotifications = async (req, res) => {
 export const markAsRead = async (req, res) => {
   try {
     const notification = await Notification.findOneAndUpdate(
-      { _id: req.params.id, user: req.user._id },
+      { _id: req.params.id, user: req.user?._id },
       { read: true },
       { new: true }
     );
@@ -40,7 +40,7 @@ export const markAsRead = async (req, res) => {
 export const markAllAsRead = async (req, res) => {
   try {
     await Notification.updateMany(
-      { user: req.user._id, read: false },
+      { user: req.user?._id, read: false },
       { read: true }
     );
 
@@ -52,7 +52,7 @@ export const markAllAsRead = async (req, res) => {
 
 export const deleteNotification = async (req, res) => {
   try {
-    await Notification.findOneAndDelete({ _id: req.params.id, user: req.user._id });
+    await Notification.findOneAndDelete({ _id: req.params.id, user: req.user?._id });
     res.status(200).json({ success: true, message: 'Notification deleted' });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

@@ -27,7 +27,7 @@ export const createAnnouncement = async (req, res) => {
       description,
       date: new Date(date),
       type,
-      createdBy: req.user._id
+      createdBy: req.user?._id || req.user?.id || null,
     });
 
     // 2. Get all users (except admin if you want)

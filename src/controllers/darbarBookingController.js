@@ -44,49 +44,38 @@ export const createBooking = async (req, res) => {
         }
 
         const { devoteeName, phoneNumber, city, numberOfPeople, notes, email } = req.body;
-
         const darbarDate = getUpcomingSunday();
         darbarDate.setHours(0, 0, 0, 0);
 
-        // ✅ FIX 2: Email se ek din mein ek hi booking
+        // ✅ Email se duplicate check
         if (email) {
-            const existingEmailBooking = await DarbarBooking.findOne({
-                email: email,
-                darbarDate: darbarDate
-            });
-            if (existingEmailBooking) {
+            const existingEmail = await DarbarBooking.findOne({ email, darbarDate });
+            if (existingEmail) {
                 return res.status(400).json({ 
-                    message: "Is email se is Sunday ke liye already booking ho chuki hai." 
+                    message: "Aapne is Sunday ke liye already token book kar liya hai!" 
                 });
             }
         }
 
-        // Phone number se bhi check karo
-        const existingPhoneBooking = await DarbarBooking.findOne({
-            phoneNumber: phoneNumber,
-            darbarDate: darbarDate
-        });
-        if (existingPhoneBooking) {
+        // ✅ Phone se duplicate check
+        const existingPhone = await DarbarBooking.findOne({ phoneNumber, darbarDate });
+        if (existingPhone) {
             return res.status(400).json({ 
-                message: "Is phone number se is Sunday ke liye already booking ho chuki hai." 
+                message: "Is phone number se is Sunday ke liye already booking ho chuki hai!" 
             });
         }
 
         const now = moment();
         const bookingTime = now.format("HH:mm");
 
-        const exactSameTimeBooking = await DarbarBooking.findOne({
-            darbarDate: darbarDate,
-            bookingTime: bookingTime
-        });
+        const exactSameTimeBooking = await DarbarBooking.findOne({ darbarDate, bookingTime });
         if (exactSameTimeBooking) {
-            return res.status(400).json({ message: "Time slot already booked. Please wait a minute and try again." });
+            return res.status(400).json({ message: "Please wait a minute and try again." });
         }
 
-        // Generate Token Number
-        let tokenSetting = await TokenSetting.findOne({ darbarDate: darbarDate });
+        let tokenSetting = await TokenSetting.findOne({ darbarDate });
         if (!tokenSetting) {
-            tokenSetting = new TokenSetting({ darbarDate: darbarDate, currentTokenNumber: 0 });
+            tokenSetting = new TokenSetting({ darbarDate, currentTokenNumber: 0 });
         }
         tokenSetting.currentTokenNumber += 1;
         await tokenSetting.save();
@@ -94,36 +83,20 @@ export const createBooking = async (req, res) => {
         const tokenNumber = tokenSetting.currentTokenNumber;
 
         const newBooking = new DarbarBooking({
-            devoteeName,
-            phoneNumber,
-            email,        // ✅ email field save karo model mein bhi
-            city,
-            numberOfPeople,
-            darbarDate,
-            tokenNumber,
-            bookingTime,
-            notes
+            devoteeName, phoneNumber, email, city,
+            numberOfPeople, darbarDate, tokenNumber, bookingTime, notes
         });
 
         await newBooking.save();
 
-        // ✅ FIX 1: Email ko background mein bhejo — response block na ho
+        // ✅ Email background mein bhejo (await mat karo)
         if (email) {
             sendBookingConfirmationEmail({
-                devoteeName,
-                tokenNumber,
-                darbarDate,
-                numberOfPeople,
-                email
-            }).catch(err => console.error("Email send failed:", err)); // await HATAO
+                devoteeName, tokenNumber, darbarDate, numberOfPeople, email
+            }).catch(err => console.error("Email error:", err));
         }
 
-        // ✅ Turant response do
-        return res.status(201).json({ 
-            message: "Booking successful", 
-            tokenNumber, 
-            darbarDate 
-        });
+        return res.status(201).json({ message: "Booking successful!", tokenNumber, darbarDate });
 
     } catch (error) {
         console.error("Booking error:", error);

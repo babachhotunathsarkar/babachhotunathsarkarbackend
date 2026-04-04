@@ -36,6 +36,7 @@ export const isBookingOpen = () => {
 };
 
 // 1. Create a Booking
+// 1. Create a Booking
 export const createBooking = async (req, res) => {
     try {
         if (!isBookingOpen()) {
@@ -44,17 +45,40 @@ export const createBooking = async (req, res) => {
 
         const { devoteeName, phoneNumber, city, numberOfPeople, notes, email } = req.body;
 
+        const darbarDate = getUpcomingSunday();
+        darbarDate.setHours(0, 0, 0, 0);
+
+        // ✅ FIX 2: Email se ek din mein ek hi booking
+        if (email) {
+            const existingEmailBooking = await DarbarBooking.findOne({
+                email: email,
+                darbarDate: darbarDate
+            });
+            if (existingEmailBooking) {
+                return res.status(400).json({ 
+                    message: "Is email se is Sunday ke liye already booking ho chuki hai." 
+                });
+            }
+        }
+
+        // Phone number se bhi check karo
+        const existingPhoneBooking = await DarbarBooking.findOne({
+            phoneNumber: phoneNumber,
+            darbarDate: darbarDate
+        });
+        if (existingPhoneBooking) {
+            return res.status(400).json({ 
+                message: "Is phone number se is Sunday ke liye already booking ho chuki hai." 
+            });
+        }
+
         const now = moment();
         const bookingTime = now.format("HH:mm");
-        const darbarDate = getUpcomingSunday();
-        darbarDate.setHours(0,0,0,0);
 
-        // Check for exact same minute duplicate globally
         const exactSameTimeBooking = await DarbarBooking.findOne({
             darbarDate: darbarDate,
             bookingTime: bookingTime
         });
-
         if (exactSameTimeBooking) {
             return res.status(400).json({ message: "Time slot already booked. Please wait a minute and try again." });
         }
@@ -64,7 +88,6 @@ export const createBooking = async (req, res) => {
         if (!tokenSetting) {
             tokenSetting = new TokenSetting({ darbarDate: darbarDate, currentTokenNumber: 0 });
         }
-        
         tokenSetting.currentTokenNumber += 1;
         await tokenSetting.save();
 
@@ -73,6 +96,7 @@ export const createBooking = async (req, res) => {
         const newBooking = new DarbarBooking({
             devoteeName,
             phoneNumber,
+            email,        // ✅ email field save karo model mein bhi
             city,
             numberOfPeople,
             darbarDate,
@@ -83,17 +107,24 @@ export const createBooking = async (req, res) => {
 
         await newBooking.save();
 
+        // ✅ FIX 1: Email ko background mein bhejo — response block na ho
         if (email) {
-            await sendBookingConfirmationEmail({
+            sendBookingConfirmationEmail({
                 devoteeName,
                 tokenNumber,
                 darbarDate,
                 numberOfPeople,
                 email
-            });
+            }).catch(err => console.error("Email send failed:", err)); // await HATAO
         }
 
-        res.status(201).json({ message: "Booking successful", tokenNumber, darbarDate });
+        // ✅ Turant response do
+        return res.status(201).json({ 
+            message: "Booking successful", 
+            tokenNumber, 
+            darbarDate 
+        });
+
     } catch (error) {
         console.error("Booking error:", error);
         res.status(500).json({ message: "Something went wrong" });

@@ -6,6 +6,10 @@ const darbarBookingSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  email: {
+    type: String,
+    default: null
+},
   devoteeName: {
     type: String,
     required: true,

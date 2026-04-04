@@ -12,13 +12,14 @@ const router = express.Router();
 // ── Public routes ──
 router.get('/', getAllImages);
 router.get('/category/:category', getImagesByCategory);
+router.get('/:id', getImageById);
+
+// ── Protected routes (Admin only) ──
+router.use(verifyAdmin);
 
 router.post('/upload', upload.single('image'), uploadImage);
 router.post('/upload-multiple', upload.array('images', 10), uploadMultipleImages);
 router.post('/bulk-delete', bulkDeleteImages);
-
-// ── /:id routes SABSE NEECHE ──
-router.get('/:id', getImageById);
 router.put('/:id', updateImage);
 router.delete('/:id', deleteImage);
 

@@ -3,20 +3,25 @@ import TokenSetting from '../models/TokenSetting.js';
 import { sendBookingConfirmationEmail } from '../utils/mailer.js';
 import moment from 'moment';
 
-// Utility to get the upcoming Sunday at 1:00 PM for cutoff
+// Utility to get the upcoming Sunday for cutoff calculation (in IST)
 export const getUpcomingSunday = () => {
-    let d = new Date();
-    d.setHours(13, 0, 0, 0); // 1:00 PM cutoff assumed
-    d.setDate(d.getDate() + (7 - d.getDay()) % 7);
-    if (d.getDay() !== 0) {
-        d.setDate(d.getDate() + (7 - d.getDay()));
+    let now = moment().utcOffset("+05:30");
+    let day = now.day();
+    let diff = (7 - day) % 7;
+    
+    // If it is Sunday after 1 PM, move to next Sunday
+    if (day === 0 && now.hour() >= 13) {
+        diff = 7;
     }
-    return d;
+    
+    let sunday = now.add(diff, 'days').toDate();
+    sunday.setHours(0, 0, 0, 0);
+    return sunday;
 };
 
-// Check if booking is currently open
+// Check if booking is currently open (in IST)
 export const isBookingOpen = () => {
-    const now = moment();
+    const now = moment().utcOffset("+05:30");
     
     // Saturday is 6, Sunday is 0
     if (now.day() === 6 && now.hour() >= 16) {
@@ -24,7 +29,7 @@ export const isBookingOpen = () => {
     }
     
     if (now.day() === 0 && now.hour() < 13) {
-        return true; // Sunday before 1 PM (assuming 1 PM closing)
+        return true; // Sunday before 1 PM
     }
     
     return false;

@@ -102,7 +102,7 @@ export const uploadMultipleImages = async (req, res) => {
           size: result.bytes,
           width: result.width,
           height: result.height,
-          uploadedBy: req.user._id
+          uploadedBy: req.user?._id || null
         });
 
         await image.save();
@@ -119,8 +119,11 @@ export const uploadMultipleImages = async (req, res) => {
       }
     }
 
-    res.status(201).json({
-      success: true,
+    const success = uploadedImages.length > 0;
+    const status = success ? 201 : (errors.length > 0 ? 400 : 201); // 400 if all failed
+
+    res.status(status).json({
+      success,
       message: `${uploadedImages.length} images uploaded successfully`,
       data: uploadedImages,
       errors: errors.length > 0 ? errors : undefined

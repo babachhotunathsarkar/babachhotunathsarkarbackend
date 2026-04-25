@@ -24,8 +24,11 @@ import timingRoutes from './routes/timing.routes.js';
 import specialDayRoutes from './routes/specialDay.routes.js';
 import darbarBookingRoutes from './routes/darbarBookingRoutes.js';
 import contactRoutes from './routes/contact.routes.js';
-import analyticsRoutes from './routes/analytics.routes.js';
 import donationSettingRoutes from './routes/donationSetting.routes.js';
+import privacyRoutes from './routes/privacy.routes.js';
+import termsRoutes from './routes/terms.routes.js';
+import cookieRoutes from './routes/cookie.routes.js';
+import analyticsRoutes from './routes/analytics.routes.js';
 import pageContentRoutes from './routes/pageContent.routes.js';
 // Load env vars
 dotenv.config();
@@ -53,8 +56,15 @@ app.get('/api/v1/health', (req, res) => res.status(200).json({ status: 'up', tim
 
 // --- Core API Routes (High Priority) ---
 app.use('/api/v1/analytics', analyticsRoutes);
-app.use('/api/v1/page-content', pageContentRoutes);
 app.use('/api/v1/donation-settings', donationSettingRoutes);
+app.use('/api/v1/page-content', pageContentRoutes);
+app.use('/api/legacy/admin', adminRoutes); // Keep standard
+
+// --- Policy Routes (Separated) ---
+app.use('/api/v1/privacy', privacyRoutes);
+app.use('/api/v1/terms', termsRoutes);
+app.use('/api/v1/cookie', cookieRoutes);
+
 app.use('/api/v1/admin', adminRoutes);
 
 // --- Standard API Routes ---

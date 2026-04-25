@@ -91,12 +91,141 @@ export const getAnalyticsDashboard = async (req, res) => {
                 uniqueUsersCount,
                 activeSessionsLastHour
             },
-            topClicks,
-            topRoutes,
-            recentlyActiveUsers: activeProfiles
+            topClicks: topClicks.map(c => ({ title: c._id || 'Unknown', clicks: c.count })),
+            topRoutes: topRoutes.map(r => ({ path: r._id, count: r.views })),
+            recentlyActiveUsers: activeProfiles.map(p => ({
+                name: p.user?.name || 'Guest',
+                email: p.user?.email || 'N/A',
+                lastActive: p.lastActive,
+                path: p.path
+            }))
         });
     } catch (error) {
          console.error("Dashboard Analytics Error:", error);
          res.status(500).json({ success: false, message: "Error compiling analytics payload" });
+    }
+};
+
+export const getPageViewsOverTime = async (req, res) => {
+    try {
+        const { days = 30 } = req.query;
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - parseInt(days));
+
+        const views = await Analytics.aggregate([
+            { 
+                $match: { 
+                    event: 'PAGE_VIEW',
+                    timestamp: { $gte: startDate }
+                } 
+            },
+            {
+                $group: {
+                    _id: { $dateToString: { format: "%Y-%m-%d", date: "$timestamp" } },
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { _id: 1 } }
+        ]);
+
+        res.status(200).json({ success: true, data: views });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getUserSessions = async (req, res) => {
+    try {
+        const { page = 1, limit = 20 } = req.query;
+        const skip = (parseInt(page) - 1) * parseInt(limit);
+
+        const sessions = await Analytics.aggregate([
+            { $sort: { timestamp: -1 } },
+            {
+                $group: {
+                    _id: "$sessionId",
+                    userId: { $first: "$userId" },
+                    lastActive: { $first: "$timestamp" },
+                    lastPath: { $first: "$path" },
+                    eventCount: { $sum: 1 }
+                }
+            },
+            { $sort: { lastActive: -1 } },
+            { $skip: skip },
+            { $limit: parseInt(limit) }
+        ]);
+
+        // Populate user info if exists
+        const populatedSessions = await Promise.all(sessions.map(async (s) => {
+            let user = null;
+            if (s.userId) {
+                user = await User.findById(s.userId).select('name email');
+            }
+            return {
+                ...s,
+                name: user?.name || 'Guest',
+                email: user?.email || 'N/A'
+            };
+        }));
+
+        const totalEntries = await Analytics.distinct('sessionId').then(res => res.length);
+
+        res.status(200).json({
+            success: true,
+            data: populatedSessions,
+            pagination: {
+                currentPage: parseInt(page),
+                totalPages: Math.ceil(totalEntries / parseInt(limit)),
+                totalItems: totalEntries
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getRouteAnalytics = async (req, res) => {
+    try {
+        const routes = await Analytics.aggregate([
+            { $match: { event: 'PAGE_VIEW' } },
+            {
+                $group: {
+                    _id: "$path",
+                    views: { $sum: 1 },
+                    uniqueUsers: { $addToSet: "$sessionId" }
+                }
+            },
+            {
+                $project: {
+                    path: "$_id",
+                    views: 1,
+                    uniqueUsers: { $size: "$uniqueUsers" }
+                }
+            },
+            { $sort: { views: -1 } }
+        ]);
+
+        res.status(200).json({ success: true, data: routes });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
+    }
+};
+
+export const getClickAnalytics = async (req, res) => {
+    try {
+        const clicks = await Analytics.aggregate([
+            { $match: { event: 'CLICK' } },
+            {
+                $group: {
+                    _id: "$elementId",
+                    count: { $sum: 1 }
+                }
+            },
+            { $sort: { count: -1 } }
+        ]);
+
+        res.status(200).json({ success: true, data: clicks });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
 };

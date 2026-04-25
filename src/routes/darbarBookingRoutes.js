@@ -5,7 +5,8 @@ import {
     resetTokens,
     deleteBooking,
     updateBooking,
-    getUserBooking
+    getUserBooking,
+    getUserAllBookings
 } from '../controllers/darbarBookingController.js';
 import { verifyAdmin } from '../middleware/auth.js';
 
@@ -14,6 +15,7 @@ const router = express.Router();
 // User Routes
 router.post('/book', createBooking);
 router.get('/user/:phoneNumber', getUserBooking);
+router.get('/user/:phoneNumber/all', getUserAllBookings);
 
 // Admin Routes (Protect with verifyAdmin)
 router.get('/admin/all', verifyAdmin, getAllBookings);

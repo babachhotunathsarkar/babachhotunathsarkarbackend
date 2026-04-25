@@ -1,4 +1,4 @@
-import express, { application } from 'express';
+import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import http from 'http';
@@ -24,6 +24,9 @@ import timingRoutes from './routes/timing.routes.js';
 import specialDayRoutes from './routes/specialDay.routes.js';
 import darbarBookingRoutes from './routes/darbarBookingRoutes.js';
 import contactRoutes from './routes/contact.routes.js';
+import analyticsRoutes from './routes/analytics.routes.js';
+import donationSettingRoutes from './routes/donationSetting.routes.js';
+import pageContentRoutes from './routes/pageContent.routes.js';
 // Load env vars
 dotenv.config();
 connectDB();
@@ -43,33 +46,35 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Debug Middleware
-app.use((req, res, next) => {
-  console.log(`📡 ${req.method} ${req.url}`);
-  next();
-});
 
-// Routes
+
+// --- Diagnostic Health Check ---
+app.get('/api/v1/health', (req, res) => res.status(200).json({ status: 'up', timestamp: new Date() }));
+
+// --- Core API Routes (High Priority) ---
+app.use('/api/v1/analytics', analyticsRoutes);
+app.use('/api/v1/page-content', pageContentRoutes);
+app.use('/api/v1/donation-settings', donationSettingRoutes);
+app.use('/api/v1/admin', adminRoutes);
+
+// --- Standard API Routes ---
 app.use('/api/v1/users', userRoutes);
 app.use('/api/v1/appointments', appointmentRoutes);
 app.use('/api/v1/donations', donationRoutes);
-app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/chat', chatRoutes);
-app.use('/api/v1/images',imageRoutes)
-app.use('/api/v1/videos',videoRoutes)
-app.use('/api/v1/marquee',marqueeRoutes)
-app.use('/api/v1/address', addrssRoutes)
-app.use('/api/v1/events',eventsRoutes)
-app.use('/api/v1/announcements',announcementRoutes)
+app.use('/api/v1/images', imageRoutes);
+app.use('/api/v1/videos', videoRoutes);
+app.use('/api/v1/marquee', marqueeRoutes);
+app.use('/api/v1/address', addrssRoutes);
+app.use('/api/v1/events', eventsRoutes);
+app.use('/api/v1/announcements', announcementRoutes);
 app.use('/api/v1/notifications', notificationRoutes);
 app.use('/api/v1/schedules', scheduleRoutes);
 app.use('/api/v1/timings', timingRoutes);
 app.use('/api/v1/darbar-bookings', darbarBookingRoutes);
 app.use('/api/v1/contacts', contactRoutes);
+app.use('/api/v1/special-days', specialDayRoutes);
 startCronJobs();
-// server.js - After all routes, add this debug code
-console.log('✅ All routes registered:');
-console.log('📋 Schedules routes:', scheduleRoutes.stack?.map(r => r.route?.path));
 app.use((err, req, res, next) => {
     console.error(err.stack);
     res.status(500).json({ message: 'Something went wrong!' });

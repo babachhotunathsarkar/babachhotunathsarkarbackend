@@ -25,7 +25,7 @@ router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/verify-otp", verifyOtp);
 router.post("/forgot-password", forgetPasswordSendEmail);
-router.post("/forgotpassword", forgetPassword);
+router.post("/forgot-password-reset", verifyUser, forgetPassword);
 router.post("/reset-password/:userId/:token", resetPassword);
 
 // ── Logged-in user routes ──

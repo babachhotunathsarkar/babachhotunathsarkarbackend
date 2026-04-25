@@ -111,15 +111,7 @@ export const getCurrentUser = asyncHandler(async (req, res) => {
 // @access Private
 export const updateUserProfile = asyncHandler(async (req, res) => {
     try {
-        console.log('=== Update Profile Debug ===');
-        console.log('User ID:', req.user?._id);
-        console.log('Request body:', req.body);
-        console.log('Request file:', req.file ? {
-            fieldname: req.file.fieldname,
-            originalname: req.file.originalname,
-            size: req.file.size,
-            path: req.file.path
-        } : 'No file uploaded');
+       
         
         const userId = req.user?._id;
         const { name, phone, address } = req.body || {};
@@ -184,13 +176,7 @@ export const updateUserProfile = asyncHandler(async (req, res) => {
 
         const updatedUser = await User.findById(userId).select("-password");
         
-        console.log('Updated user data:', {
-            id: updatedUser._id,
-            name: updatedUser.name,
-            phone: updatedUser.phone,
-            address: updatedUser.address,
-            profileImage: updatedUser.profileImage
-        });
+      
 
         return res.status(200).json(new ApiResponse(200, "Profile updated successfully", { user: updatedUser }));
     } catch (error) {
@@ -247,9 +233,11 @@ export const forgetPasswordSendEmail = asyncHandler(async (req, res) => {
 // @route POST /api/users/forgotpassword
 // @access Public
 export const forgetPassword = asyncHandler(async (req, res) => {
-    const { userId, password } = req.body;
+    const { password } = req.body;
+    const userId = req.user?._id;
+
     if (!userId || !password) {
-        return res.status(400).json({ success: false, message: "User ID and Password required" });
+        return res.status(400).json({ success: false, message: "Authentication required and Password required" });
     }
 
     const user = await User.findById(userId);
@@ -258,6 +246,8 @@ export const forgetPassword = asyncHandler(async (req, res) => {
     }
 
     user.password = password;
+    user.resetOtp = undefined;
+    user.resetOtpExpires = undefined;
     await user.save();
 
     return res.status(200).json({ success: true, message: "Password reset successfully" });

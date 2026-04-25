@@ -180,3 +180,15 @@ export const getUserBooking = async (req, res) => {
          res.status(500).json({ message: "Error looking up booking." });
      }
 };
+
+// 7. User: Get All User Bookings (For Date Segregation)
+export const getUserAllBookings = async (req, res) => {
+     try {
+         const { phoneNumber } = req.params;
+         const bookings = await DarbarBooking.find({ phoneNumber }).sort({ darbarDate: -1 });
+         
+         res.status(200).json(bookings);
+     } catch (error) {
+         res.status(500).json({ message: "Error fetching user bookings." });
+     }
+};
